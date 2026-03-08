@@ -1,0 +1,29 @@
+<!DOCTYPE html><html>
+<head>
+<title>Business App</title>
+</head><body><h2>My Business App</h2><button onclick="login()">Login With Google</button>
+
+<br><br>
+
+<input id="name" placeholder="Customer Name">
+<input id="product" placeholder="Product">
+<input id="price" placeholder="Price"><button onclick="saveData()">Save Data</button>
+
+<script>
+
+function login(){
+alert("Google Login System Working");
+}
+
+function saveData(){
+
+let name=document.getElementById("name").value
+let product=document.getElementById("product").value
+let price=document.getElementById("price").value
+
+alert(name+" "+product+" "+price)
+
+}
+
+</script></body>
+</html>
