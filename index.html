@@ -1,76 +1,80 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Business App Pro</title>
+
+<title>Universal Manager App</title>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
 body{
 font-family:Arial;
-background:linear-gradient(135deg,#4facfe,#00f2fe);
+background:#f4f6f9;
 margin:0;
 padding:0;
 }
 
-.container{
-max-width:420px;
-margin:auto;
-margin-top:40px;
-background:white;
-padding:25px;
-border-radius:12px;
-box-shadow:0 10px 25px rgba(0,0,0,0.2);
-}
-
-h2{
+.header{
+background:#2c3e50;
+color:white;
+padding:15px;
 text-align:center;
-margin-bottom:20px;
+font-size:20px;
 }
 
-button{
+.container{
+padding:20px;
+max-width:500px;
+margin:auto;
+}
+
+.mode-btn{
 width:100%;
-padding:12px;
+padding:14px;
+margin:8px 0;
 border:none;
 border-radius:8px;
-background:#4facfe;
-color:white;
 font-size:16px;
-margin-top:10px;
+background:#3498db;
+color:white;
 cursor:pointer;
 }
 
-button:hover{
-background:#2f8cff;
+.mode-btn:hover{
+background:#2980b9;
+}
+
+.card{
+background:white;
+padding:15px;
+border-radius:10px;
+margin-top:15px;
+box-shadow:0 2px 6px rgba(0,0,0,0.15);
 }
 
 input{
 width:100%;
 padding:10px;
-border:1px solid #ddd;
+margin-top:10px;
+border:1px solid #ccc;
 border-radius:6px;
+}
+
+.save-btn{
+background:#27ae60;
 margin-top:10px;
 }
 
 .dashboard{
 display:flex;
-justify-content:space-between;
-margin-top:15px;
+gap:10px;
 }
 
-.card{
-background:#f3f3f3;
-padding:10px;
-border-radius:8px;
-text-align:center;
+.dashboard .card{
 flex:1;
-margin:5px;
-}
-
-.total{
-font-size:20px;
-color:#4facfe;
+text-align:center;
 }
 
 </style>
@@ -79,31 +83,88 @@ color:#4facfe;
 
 <body>
 
+<div class="header">
+Universal Manager App
+</div>
+
 <div class="container">
 
-<h2>Business App</h2>
+<button class="mode-btn" onclick="login()">Login With Google</button>
 
-<button onclick="login()">Login With Google</button>
+<div id="modeSelect">
 
-<input id="name" placeholder="Customer Name">
+<h3>Select Mode</h3>
 
-<input id="product" placeholder="Product">
+<button class="mode-btn" onclick="openMode()">Start Business</button>
 
-<input id="price" placeholder="Price">
+</div>
 
-<button onclick="saveData()">Save Sale</button>
+<div id="appArea"></div>
+
+<div class="card">
+
+<h3>Dashboard</h3>
 
 <div class="dashboard">
 
 <div class="card">
-Today Sales
-<div class="total" id="today">0</div>
+<h4>Today Sales</h4>
+<div id="todaySales">0</div>
 </div>
 
 <div class="card">
-Total Sales
-<div class="total" id="total">0</div>
+<h4>Total Records</h4>
+<div id="totalRecords">0</div>
 </div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<h3>Monthly Profit</h3>
+
+<div id="monthlyProfit">0</div>
+
+</div>
+
+<div class="card">
+
+<h3>Sales Graph</h3>
+
+<canvas id="salesChart"></canvas>
+
+</div>
+
+<div class="card">
+
+<h3>Stock Management</h3>
+
+<input id="stockName" placeholder="Product Name">
+<input id="stockQty" placeholder="Quantity">
+
+<button class="mode-btn save-btn" onclick="addStock()">Add Stock</button>
+
+<ul id="stockList"></ul>
+
+</div>
+
+<div class="card">
+
+<h3>Customer History</h3>
+
+<ul id="customerList"></ul>
+
+</div>
+
+<div class="card">
+
+<h3>Invoice</h3>
+
+<div id="invoiceArea"></div>
+
+<button class="mode-btn save-btn" onclick="sendWhatsApp()">Send WhatsApp Invoice</button>
 
 </div>
 
@@ -113,8 +174,17 @@ Total Sales
 
 let accessToken=""
 let sheetId=""
-let todayTotal=0
-let allTotal=0
+
+let totalRecords=0
+let todaySales=0
+let monthlyProfit=0
+
+let salesData=[0,0,0,0,0,0,0]
+
+let customers=[]
+let stocks=[]
+
+let lastInvoice=""
 
 function login(){
 
@@ -127,7 +197,6 @@ scope:"https://www.googleapis.com/auth/drive.file https://www.googleapis.com/aut
 callback:(response)=>{
 
 accessToken=response.access_token
-
 createSheet()
 
 }
@@ -149,36 +218,45 @@ Authorization:"Bearer "+accessToken,
 "Content-Type":"application/json"
 },
 body:JSON.stringify({
-properties:{title:"Business App Data"},
-sheets:[{properties:{title:"Sales"}}]
+properties:{title:"Universal Manager Data"},
+sheets:[{properties:{title:"Records"}}]
 })
 }
 )
 
 let data=await res.json()
-
 sheetId=data.spreadsheetId
 
-alert("Google Sheet Created")
+alert("Database Ready")
+
+}
+
+function openMode(){
+
+let html=`
+<div class="card">
+<h3>Sale Entry</h3>
+<input id="f1" placeholder="Customer Name">
+<input id="f2" placeholder="Product">
+<input id="f3" placeholder="Price">
+<button class="mode-btn save-btn" onclick="saveData()">Save Sale</button>
+</div>`
+
+document.getElementById("modeSelect").style.display="none"
+document.getElementById("appArea").innerHTML=html
 
 }
 
 async function saveData(){
 
-let name=document.getElementById("name").value
-let product=document.getElementById("product").value
-let price=document.getElementById("price").value
+let a=document.getElementById("f1").value
+let b=document.getElementById("f2").value
+let c=parseFloat(document.getElementById("f3").value)
 
 let date=new Date().toLocaleDateString()
 
-todayTotal+=Number(price)
-allTotal+=Number(price)
-
-document.getElementById("today").innerText=todayTotal
-document.getElementById("total").innerText=allTotal
-
 await fetch(
-`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sales!A1:append?valueInputOption=RAW`,
+`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Records!A1:append?valueInputOption=RAW`,
 {
 method:"POST",
 headers:{
@@ -186,14 +264,70 @@ Authorization:"Bearer "+accessToken,
 "Content-Type":"application/json"
 },
 body:JSON.stringify({
-values:[[date,name,product,price]]
+values:[[date,a,b,c]]
 })
 }
 )
 
+customers.push(a+" - "+b+" - "+c)
+
+let li=document.createElement("li")
+li.innerText=a+" - "+b+" - "+c
+document.getElementById("customerList").appendChild(li)
+
+totalRecords++
+todaySales++
+monthlyProfit+=c
+
+document.getElementById("todaySales").innerText=todaySales
+document.getElementById("totalRecords").innerText=totalRecords
+document.getElementById("monthlyProfit").innerText=monthlyProfit
+
+salesData[0]+=1
+chart.update()
+
+lastInvoice=`Customer: ${a}\nProduct: ${b}\nPrice: ${c}`
+
+document.getElementById("invoiceArea").innerHTML=
+"Customer: "+a+"<br>Product: "+b+"<br>Price: "+c
+
 alert("Sale Saved")
 
 }
+
+function addStock(){
+
+let name=document.getElementById("stockName").value
+let qty=document.getElementById("stockQty").value
+
+let li=document.createElement("li")
+li.innerText=name+" ("+qty+")"
+
+document.getElementById("stockList").appendChild(li)
+
+}
+
+function sendWhatsApp(){
+
+let url="https://wa.me/?text="+encodeURIComponent(lastInvoice)
+
+window.open(url,"_blank")
+
+}
+
+const ctx=document.getElementById('salesChart').getContext('2d')
+
+const chart=new Chart(ctx,{
+type:'bar',
+data:{
+labels:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+datasets:[{
+label:"Sales",
+data:salesData,
+backgroundColor:"#3498db"
+}]
+}
+})
 
 </script>
 
